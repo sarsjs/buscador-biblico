@@ -9,13 +9,13 @@
   "description": "Un buscador rápido para la Traducción del Nuevo Mundo.",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/pwa-builder/pwa-starter/main/src/assets/icons/icon-512x512.png",
+      "src": "https://www.pwabuilder.com/assets/icons/icon_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://raw.githubusercontent.com/pwa-builder/pwa-starter/main/src/assets/icons/icon-512x512.png",
+      "src": "https://www.pwabuilder.com/assets/icons/icon_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
