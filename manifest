@@ -1,0 +1,21 @@
+{
+  "short_name": "Buscador Bíblico",
+  "name": "Buscador Bíblico Híbrido",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/4f46e5/ffffff?text=Biblia",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://placehold.co/512x512/4f46e5/ffffff?text=Biblia",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
+
