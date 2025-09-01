@@ -1,6 +1,7 @@
 {
   "name": "Buscador Bíblico Web",
   "short_name": "Buscador JW",
+  "id": "/",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#111827",
@@ -8,16 +9,16 @@
   "description": "Un buscador rápido para la Traducción del Nuevo Mundo.",
   "icons": [
     {
-      "src": "https://storage.googleapis.com/material-icons/external-assets/v4/icons/svg/ic_book_white_24dp.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
+      "src": "https://storage.googleapis.com/pwa-builder-images/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     },
     {
       "src": "https://storage.googleapis.com/pwa-builder-images/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ]
 }
