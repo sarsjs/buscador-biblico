@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Links para PWA -->
+    <meta name="theme-color" content="#4f46e5"/>
+    <link rel="manifest" href="manifest.json">
+    
     <title>Buscador Bíblico Híbrido</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -183,7 +187,6 @@
             showLoading("Buscando en API pública...");
             copyBtn.classList.add('hidden');
             try {
-                // Bible-api.com expects English book names sometimes, so we create a simple mapping for common ones
                 const apiBook = book.replace(" ", ""); // e.g. "1 Samuel" -> "1Samuel"
                 const url = `https://bible-api.com/${apiBook}+${chapter}:${verse}?translation=rv1960`;
                 const response = await fetch(url);
@@ -302,7 +305,7 @@
             });
 
             const bookNamesForRegex = Object.keys(bookMap).join('|');
-            const regex = new RegExp(`(${bookNamesForRegex})\\s+(\\d+)\\s*[:.]\\s*(\\d+)`, 'i');
+            const regex = new RegExp(`(${bookNamesForRegex})\\s+(\\d+)\\s*(?:[:.]?\\s*|\\s+)(\\d+)`, 'i');
             const match = cleanedText.match(regex);
 
             if (match) {
@@ -315,23 +318,21 @@
                     return { book, chapter, verse };
                 }
             }
-             // Fallback for space as separator
-            const regexSpace = new RegExp(`(${bookNamesForRegex})\\s+(\\d+)\\s+(\\d+)`, 'i');
-            const matchSpace = cleanedText.match(regexSpace);
-            if(matchSpace) {
-                const bookKey = matchSpace[1];
-                const chapter = matchSpace[2];
-                const verse = matchSpace[3];
-                const book = bookMap[bookKey];
-
-                if (book && chapter && verse) {
-                    return { book, chapter, verse };
-                }
-            }
-
             return null;
         }
         
+        // --- Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado con éxito:', registration);
+                    })
+                    .catch(err => {
+                        console.log('Error en el registro del Service Worker:', err);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
