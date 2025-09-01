@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#4f46e5"/>
     <link rel="manifest" href="manifest.json">
     
-    <title>Buscador Bíblico Híbrido</title>
+    <title>Buscador Bíblico para App JW</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -17,35 +17,15 @@
         .tab-inactive { background-color: #374151; color: #d1d5db; }
         .mic-button.listening { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(79, 70, 229, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); } }
-        /* Modal Styles */
-        #alert-modal { transition: opacity 0.3s ease; }
     </style>
 </head>
 <body class="main-container antialiased">
 
-    <!-- Alert Modal -->
-    <div id="alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-sm text-center border border-gray-700">
-            <div id="alert-icon" class="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center">
-                <!-- Icon will be inserted by JS -->
-            </div>
-            <h3 id="alert-title" class="text-xl font-bold text-white mb-2"></h3>
-            <p id="alert-message" class="text-gray-300 mb-6"></p>
-            <button id="alert-ok-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">Entendido</button>
-        </div>
-    </div>
-
     <div class="flex flex-col h-screen max-w-lg mx-auto p-4">
         <header class="text-center mb-4">
-            <h1 class="text-2xl font-bold text-indigo-400">Buscador Bíblico Híbrido</h1>
+            <h1 class="text-2xl font-bold text-indigo-400">Buscador para JW Library</h1>
         </header>
 
-        <!-- Mode Switcher -->
-        <div class="flex justify-center mb-4 rounded-lg p-1 bg-gray-800">
-            <button id="online-mode-btn" class="w-1/2 py-2 px-4 rounded-md text-sm font-semibold transition-colors duration-300 tab-active">Online (TNM)</button>
-            <button id="offline-mode-btn" class="w-1/2 py-2 px-4 rounded-md text-sm font-semibold transition-colors duration-300 tab-inactive">Offline (Otra Versión)</button>
-        </div>
-        
         <!-- Tabs for search type -->
         <div class="flex justify-center mb-4 rounded-lg p-1 bg-gray-800">
             <button id="manual-tab" class="w-1/2 py-2 px-4 rounded-md text-sm font-semibold transition-colors duration-300 tab-active">Búsqueda Manual</button>
@@ -68,24 +48,16 @@
                 <p id="voice-status" class="mt-4 text-gray-300 h-6">Toca el micrófono para empezar a escuchar</p>
                 <p id="transcript" class="text-sm text-gray-400 italic h-5 mt-2"></p>
             </div>
-            <div id="result-container" class="mt-4 flex-grow bg-gray-800 rounded-lg p-4 overflow-y-auto relative">
+            <div id="result-container" class="mt-4 flex-grow bg-gray-800 rounded-lg p-4 overflow-y-auto">
                 <div id="result-display" class="text-gray-200 leading-relaxed">
-                    <p id="placeholder-text" class="text-gray-500 text-center">Selecciona un modo y busca un texto.</p>
+                    <p id="placeholder-text" class="text-gray-500 text-center">Busca un texto para abrirlo en la app JW Library.</p>
                 </div>
-                <button id="copy-btn" class="hidden absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-gray-300 p-2 rounded-full transition-colors duration-300" title="Copiar al portapapeles">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
             </div>
         </main>
     </div>
 
     <script>
-        // --- State ---
-        let currentMode = 'online'; // 'online' or 'offline'
-
         // --- DOM Elements ---
-        const onlineModeBtn = document.getElementById('online-mode-btn');
-        const offlineModeBtn = document.getElementById('offline-mode-btn');
         const manualTab = document.getElementById('manual-tab');
         const voiceTab = document.getElementById('voice-tab');
         const manualView = document.getElementById('manual-view');
@@ -97,43 +69,14 @@
         const transcriptEl = document.getElementById('transcript');
         const resultDisplay = document.getElementById('result-display');
         const placeholderText = document.getElementById('placeholder-text');
-        const copyBtn = document.getElementById('copy-btn');
-        const alertModal = document.getElementById('alert-modal');
-        const alertTitle = document.getElementById('alert-title');
-        const alertMessage = document.getElementById('alert-message');
-        const alertOkBtn = document.getElementById('alert-ok-btn');
-        const alertIcon = document.getElementById('alert-icon');
         
         // --- Event Listeners ---
-        onlineModeBtn.addEventListener('click', () => switchMode('online'));
-        offlineModeBtn.addEventListener('click', () => switchMode('offline'));
         manualTab.addEventListener('click', () => switchSearchView('manual'));
         voiceTab.addEventListener('click', () => switchSearchView('voice'));
         searchBtn.addEventListener('click', handleSearch);
         verseInput.addEventListener('keyup', (e) => e.key === 'Enter' && handleSearch());
-        alertOkBtn.addEventListener('click', () => showAlert(false));
-        copyBtn.addEventListener('click', () => navigator.clipboard.writeText(resultDisplay.innerText));
 
         // --- Core Functions ---
-        
-        function switchMode(newMode) {
-            if (newMode === currentMode) return;
-            currentMode = newMode;
-            clearResults();
-
-            if (currentMode === 'online') {
-                onlineModeBtn.classList.replace('tab-inactive', 'tab-active');
-                offlineModeBtn.classList.replace('tab-active', 'tab-inactive');
-                placeholderText.textContent = "Busca un texto para abrirlo en el sitio oficial wol.jw.org";
-                showAlert(true, 'online');
-            } else {
-                offlineModeBtn.classList.replace('tab-inactive', 'tab-active');
-                onlineModeBtn.classList.replace('tab-active', 'tab-inactive');
-                placeholderText.textContent = "El texto bíblico se mostrará aquí.";
-                showAlert(true, 'offline');
-            }
-        }
-
         function switchSearchView(view) {
              if (view === 'manual') {
                 manualTab.classList.replace('tab-inactive', 'tab-active');
@@ -161,63 +104,26 @@
                 displayError('Formato no reconocido. Intenta con "Libro Capítulo:Versículo".');
                 return;
             }
-            if (currentMode === 'online') {
-                openVerseInJWLibrary(parsed.book, parsed.chapter, parsed.verse);
-            } else {
-                fetchVerseFromPublicAPI(parsed.book, parsed.chapter, parsed.verse);
-            }
+            openVerseInJWApp(parsed.book, parsed.chapter, parsed.verse);
         }
         
-        // --- Online Mode Functions ---
-        function openVerseInJWLibrary(book, chapter, verse) {
-            showLoading("Preparando enlace a wol.jw.org...");
-            const query = encodeURIComponent(`${book} ${chapter}:${verse}`);
-            const url = `https://wol.jw.org/es/wol/l/r4/lp-s?q=${query}`;
-            const newTab = window.open(url, '_blank');
-            if (newTab) {
-                newTab.focus();
-                displayConfirmation(book, chapter, verse);
-            } else {
-                displayError("No se pudo abrir la nueva pestaña. Deshabilita el bloqueador de ventanas emergentes.");
+        function openVerseInJWApp(book, chapter, verse) {
+            showLoading("Enviando a la app JW Library...");
+            const bookNumber = bookNumberMap[book];
+            if (!bookNumber) {
+                displayError("Libro bíblico no válido.");
+                return;
             }
-        }
-        
-        // --- Offline Mode Functions ---
-        async function fetchVerseFromPublicAPI(book, chapter, verse) {
-            showLoading("Buscando en API pública...");
-            copyBtn.classList.add('hidden');
-            try {
-                const apiBook = book.replace(" ", ""); // e.g. "1 Samuel" -> "1Samuel"
-                const url = `https://bible-api.com/${apiBook}+${chapter}:${verse}?translation=rv1960`;
-                const response = await fetch(url);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `No se encontró el versículo.`);
-                }
-                const data = await response.json();
-                displayVerse(data);
-            } catch (error) {
-                console.error("API Fetch Error:", error);
-                displayError(`Error: ${error.message}`);
-            }
-        }
-
-        function displayVerse(data) {
-            placeholderText.classList.add('hidden');
-            resultDisplay.innerHTML = `
-                <h3 class="text-xl font-bold text-indigo-300">${data.reference}</h3>
-                <p class="mt-4 text-lg">${data.text}</p>
-                <p class="mt-4 text-xs text-gray-500 italic">Traducción: ${data.translation_name}</p>`;
-            copyBtn.classList.remove('hidden');
+            
+            const url = `jwlibrary://finder?bible=${bookNumber}.${chapter}.${verse}`;
+            
+            // This method attempts to open the deep link.
+            window.location.href = url;
+            
+            displayConfirmation(book, chapter, verse);
         }
 
         // --- UI & Display Functions ---
-        function clearResults() {
-            resultDisplay.innerHTML = '';
-            placeholderText.classList.remove('hidden');
-            copyBtn.classList.add('hidden');
-        }
-        
         function showLoading(message) {
             placeholderText.classList.add('hidden');
             resultDisplay.innerHTML = `<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div><p class="ml-3 text-gray-400">${message}</p></div>`;
@@ -226,33 +132,11 @@
         function displayError(message) {
             placeholderText.classList.add('hidden');
             resultDisplay.innerHTML = `<p class="text-red-400 text-center">${message}</p>`;
-            copyBtn.classList.add('hidden');
         }
 
         function displayConfirmation(book, chapter, verse) {
             placeholderText.classList.add('hidden');
-            resultDisplay.innerHTML = `<div class="text-center"><h3 class="text-xl font-bold text-indigo-300">Enlace Abierto</h3><p class="mt-2 text-lg">Se ha abierto una nueva pestaña con <span class="font-semibold">${book} ${chapter}:${verse}</span> en wol.jw.org.</p></div>`;
-        }
-
-        function showAlert(show, type) {
-            if (show) {
-                if (type === 'online') {
-                    alertIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
-                    alertIcon.className = 'mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center bg-indigo-900/50';
-                    alertTitle.textContent = "Modo Online Activado";
-                    alertMessage.textContent = "Se usará tu conexión a internet. Cada búsqueda te redirigirá al sitio oficial wol.jw.org para mostrar el texto de la Traducción del Nuevo Mundo.";
-                } else { // offline
-                    alertIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
-                    alertIcon.className = 'mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center bg-yellow-900/50';
-                    alertTitle.textContent = "Modo Offline Activado";
-                    alertMessage.textContent = "Se usará una API pública gratuita. La versión de la Biblia será diferente (ej. Reina-Valera 1960). Aún necesitas internet para la búsqueda.";
-                }
-                alertModal.classList.remove('hidden');
-                alertModal.classList.add('flex');
-            } else {
-                alertModal.classList.add('hidden');
-                alertModal.classList.remove('flex');
-            }
+            resultDisplay.innerHTML = `<div class="text-center"><h3 class="text-xl font-bold text-indigo-300">Solicitud Enviada</h3><p class="mt-2 text-lg">Se intentó abrir <span class="font-semibold">${book} ${chapter}:${verse}</span> en la app JW Library.</p><p class="mt-2 text-sm text-gray-400">Si no funciona, asegúrate de tener la aplicación instalada en tu dispositivo.</p></div>`;
         }
         
         // --- Speech Recognition ---
@@ -287,6 +171,7 @@
         }
 
         // --- Book Mappings and Utility Functions ---
+        const bookNumberMap = { 'Génesis': 1, 'Éxodo': 2, 'Levítico': 3, 'Números': 4, 'Deuteronomio': 5, 'Josué': 6, 'Jueces': 7, 'Rut': 8, '1 Samuel': 9, '2 Samuel': 10, '1 Reyes': 11, '2 Reyes': 12, '1 Crónicas': 13, '2 Crónicas': 14, 'Esdras': 15, 'Nehemías': 16, 'Ester': 17, 'Job': 18, 'Salmos': 19, 'Proverbios': 20, 'Eclesiastés': 21, 'El Cantar de los Cantares': 22, 'Isaías': 23, 'Jeremías': 24, 'Lamentaciones': 25, 'Ezequiel': 26, 'Daniel': 27, 'Oseas': 28, 'Joel': 29, 'Amós': 30, 'Abdías': 31, 'Jonás': 32, 'Miqueas': 33, 'Nahúm': 34, 'Habacuc': 35, 'Sofonías': 36, 'Ageo': 37, 'Zacarías': 38, 'Malaquías': 39, 'Mateo': 40, 'Marcos': 41, 'Lucas': 42, 'Juan': 43, 'Hechos de los Apóstoles': 44, 'Romanos': 45, '1 Corintios': 46, '2 Corintios': 47, 'Gálatas': 48, 'Efesios': 49, 'Filipenses': 50, 'Colosenses': 51, '1 Tesalonicenses': 52, '2 Tesalonicenses': 53, '1 Timoteo': 54, '2 Timoteo': 55, 'Tito': 56, 'Filemón': 57, 'Hebreos': 58, 'Santiago': 59, '1 Pedro': 60, '2 Pedro': 61, '1 Juan': 62, '2 Juan': 63, '3 Juan': 64, 'Judas': 65, 'Apocalipsis': 66 };
         const bookMap = {
             'genesis': 'Génesis', 'gen': 'Génesis', 'gn': 'Génesis', 'exodo': 'Éxodo', 'ex': 'Éxodo', 'levitico': 'Levítico', 'lev': 'Levítico', 'lv': 'Levítico', 'numeros': 'Números', 'num': 'Números', 'nm': 'Números', 'deuteronomio': 'Deuteronomio', 'deut': 'Deuteronomio', 'dt': 'Deuteronomio', 'josue': 'Josué', 'jos': 'Josué', 'jueces': 'Jueces', 'jue': 'Jueces', 'jc': 'Jueces', 'rut': 'Rut', 'rt': 'Rut', 'primera de samuel': '1 Samuel', '1 samuel': '1 Samuel', '1samuel': '1 Samuel', '1 sam': '1 Samuel', '1sm': '1 Samuel', 'segunda de samuel': '2 Samuel', '2 samuel': '2 Samuel', '2samuel': '2 Samuel', '2 sam': '2 Samuel', '2sm': '2 Samuel', 'primera de reyes': '1 Reyes', '1 reyes': '1 Reyes', '1reyes': '1 Reyes', '1 re': '1 Reyes', 'segunda de reyes': '2 Reyes', '2 reyes': '2 Reyes', '2reyes': '2 Reyes', '2 re': '2 Reyes', 'primera de cronicas': '1 Crónicas', '1 cronicas': '1 Crónicas', '1cronicas': '1 Crónicas', '1 cro': '1 Crónicas', '1cr': '1 Crónicas', 'segunda de cronicas': '2 Crónicas', '2 cronicas': '2 Crónicas', '2cronicas': '2 Crónicas', '2 cro': '2 Crónicas', '2cr': '2 Crónicas', 'esdras': 'Esdras', 'esd': 'Esdras', 'nehemias': 'Nehemías', 'neh': 'Nehemías', 'ester': 'Ester', 'est': 'Ester', 'job': 'Job', 'salmos': 'Salmos', 'salmo': 'Salmos', 'sal': 'Salmos', 'proverbios': 'Proverbios', 'prov': 'Proverbios', 'pr': 'Proverbios', 'eclesiastes': 'Eclesiastés', 'ecl': 'Eclesiastés', 'ec': 'Eclesiastés', 'cantares': 'El Cantar de los Cantares', 'cantar de los cantares': 'El Cantar de los Cantares', 'cantar': 'El Cantar de los Cantares', 'cnt': 'El Cantar de los Cantares', 'isaias': 'Isaías', 'isa': 'Isaías', 'is': 'Isaías', 'jeremias': 'Jeremías', 'jer': 'Jeremías', 'lamentaciones': 'Lamentaciones', 'lam': 'Lamentaciones', 'ezequiel': 'Ezequiel', 'eze': 'Ezequiel', 'ez': 'Ezequiel', 'daniel': 'Daniel', 'dan': 'Daniel', 'dn': 'Daniel', 'oseas': 'Oseas', 'os': 'Oseas', 'joel': 'Joel', 'jl': 'Joel', 'amos': 'Amós', 'am': 'Amós', 'abdias': 'Abdías', 'abd': 'Abdías', 'jonas': 'Jonás', 'jon': 'Jonás', 'miqueas': 'Miqueas', 'miq': 'Miqueas', 'mi': 'Miqueas', 'nahum': 'Nahúm', 'nah': 'Nahúm', 'habacuc': 'Habacuc', 'hab': 'Habacuc', 'sofonias': 'Sofonías', 'sof': 'Sofonías', 'hageo': 'Ageo', 'hag': 'Ageo', 'zacarias': 'Zacarías', 'zac': 'Zacarías', 'malaquias': 'Malaquías', 'mal': 'Malaquías', 'mateo': 'Mateo', 'mat': 'Mateo', 'mt': 'Mateo', 'marcos': 'Marcos', 'mar': 'Marcos', 'mc': 'Marcos', 'lucas': 'Lucas', 'luc': 'Lucas', 'lc': 'Lucas', 'juan': 'Juan', 'jn': 'Juan', 'hechos': 'Hechos de los Apóstoles', 'hch': 'Hechos de los Apóstoles', 'romanos': 'Romanos', 'rom': 'Romanos', 'ro': 'Romanos', 'primera de corintios': '1 Corintios', '1 corintios': '1 Corintios', '1corintios': '1 Corintios', '1 cor': '1 Corintios', '1co': '1 Corintios', 'segunda de corintios': '2 Corintios', '2 corintios': '2 Corintios', '2corintios': '2 Corintios', '2 cor': '2 Corintios', '2co': '2 Corintios', 'galatas': 'Gálatas', 'gal': 'Gálatas', 'ga': 'Gálatas', 'efesios': 'Efesios', 'efe': 'Efesios', 'ef': 'Efesios', 'filipenses': 'Filipenses', 'fil': 'Filipenses', 'flp': 'Filipenses', 'colosenses': 'Colosenses', 'col': 'Colosenses', 'primera de tesalonicenses': '1 Tesalonicenses', '1 tesalonicenses': '1 Tesalonicenses', '1tesalonicenses': '1 Tesalonicenses', '1 tes': '1 Tesalonicenses', '1ts': '1 Tesalonicenses', 'segunda de tesalonicenses': '2 Tesalonicenses', '2 tesalonicenses': '2 Tesalonicenses', '2tesalonicenses': '2 Tesalonicenses', '2 tes': '2 Tesalonicenses', '2ts': '2 Tesalonicenses', 'primera de timoteo': '1 Timoteo', '1 timoteo': '1 Timoteo', '1timoteo': '1 Timoteo', '1 tim': '1 Timoteo', '1ti': '1 Timoteo', 'segunda de timoteo': '2 Timoteo', '2 timoteo': '2 Timoteo', '2timoteo': '2 Timoteo', '2 tim': '2 Timoteo', '2ti': '2 Timoteo', 'tito': 'Tito', 'tit': 'Tito', 'filemon': 'Filemón', 'flm': 'Filemón', 'hebreos': 'Hebreos', 'heb': 'Hebreos', 'santiago': 'Santiago', 'stg': 'Santiago', 'primera de pedro': '1 Pedro', '1 pedro': '1 Pedro', '1pedro': '1 Pedro', '1 pe': '1 Pedro', '1p': '1 Pedro', 'segunda de pedro': '2 Pedro', '2 pedro': '2 Pedro', '2pedro': '2 Pedro', '2 pe': '2 Pedro', '2p': '2 Pedro', 'primera de juan': '1 Juan', '1 juan': '1 Juan', '1juan': '1 Juan', '1 jn': '1 Juan', 'segunda de juan': '2 Juan', '2 juan': '2 Juan', '2juan': '2 Juan', '2 jn': '2 Juan', 'tercera de juan': '3 Juan', '3 juan': '3 Juan', '3juan': '3 Juan', '3 jn': '3 Juan', 'judas': 'Judas', 'jud': 'Judas', 'apocalipsis': 'Apocalipsis', 'revelacion': 'Apocalipsis', 'apoc': 'Apocalipsis', 'ap': 'Apocalipsis'
         };
