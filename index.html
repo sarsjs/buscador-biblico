@@ -1,24 +1,255 @@
-{
-  "name": "Buscador Bíblico Web",
-  "short_name": "Buscador JW",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#4f46e5",
-  "description": "Un buscador rápido para la Traducción del Nuevo Mundo.",
-  "icons": [
-    {
-      "src": "https://storage.googleapis.com/material-icons/external-assets/v4/icons/svg/ic_book_white_24dp.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "https://storage.googleapis.com/pwa-builder-images/pwa-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Links para PWA -->
+    <meta name="theme-color" content="#4f46e5"/>
+    <link rel="manifest" href="manifest.json">
+    
+    <title>Buscador Bíblico Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .main-container { background-color: #111827; color: #f9fafb; }
+        .tab-active { background-color: #4f46e5; color: #ffffff; }
+        .tab-inactive { background-color: #374151; color: #d1d5db; }
+        .mic-button.listening { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(79, 70, 229, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); } }
+        /* Modal Styles */
+        #alert-modal { transition: opacity 0.3s ease; }
+    </style>
+</head>
+<body class="main-container antialiased">
+
+    <!-- Alert Modal -->
+    <div id="alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-sm text-center border border-gray-700">
+            <div id="alert-icon" class="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center">
+                <!-- Icon will be inserted by JS -->
+            </div>
+            <h3 id="alert-title" class="text-xl font-bold text-white mb-2"></h3>
+            <p id="alert-message" class="text-gray-300 mb-6"></p>
+            <button id="alert-ok-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">Entendido</button>
+        </div>
+    </div>
+
+    <div class="flex flex-col h-screen max-w-lg mx-auto p-4">
+        <header class="text-center mb-4">
+            <h1 class="text-2xl font-bold text-indigo-400">Buscador Bíblico Web</h1>
+        </header>
+
+        <!-- Tabs for search type -->
+        <div class="flex justify-center mb-4 rounded-lg p-1 bg-gray-800">
+            <button id="manual-tab" class="w-1/2 py-2 px-4 rounded-md text-sm font-semibold transition-colors duration-300 tab-active">Búsqueda Manual</button>
+            <button id="voice-tab" class="w-1/2 py-2 px-4 rounded-md text-sm font-semibold transition-colors duration-300 tab-inactive">Búsqueda por Voz</button>
+        </div>
+
+        <main class="flex-grow flex flex-col bg-gray-900 rounded-xl p-4 shadow-lg overflow-hidden">
+            <div id="manual-view">
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="verse-input" placeholder="Ej: Juan 3:16" class="w-full bg-gray-700 text-white placeholder-gray-400 border border-gray-600 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="search-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="voice-view" class="hidden flex-col items-center justify-center text-center h-full">
+                <button id="mic-btn" class="mic-button bg-indigo-600 hover:bg-indigo-700 text-white rounded-full p-6 transition-all duration-300 focus:outline-none shadow-lg">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+                <p id="voice-status" class="mt-4 text-gray-300 h-6">Toca el micrófono para empezar a escuchar</p>
+                <p id="transcript" class="text-sm text-gray-400 italic h-5 mt-2"></p>
+            </div>
+            <div id="result-container" class="mt-4 flex-grow bg-gray-800 rounded-lg p-4 overflow-y-auto">
+                <div id="result-display" class="text-gray-200 leading-relaxed">
+                    <p id="placeholder-text" class="text-gray-500 text-center">Busca un texto para abrirlo en el sitio web oficial wol.jw.org.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const manualTab = document.getElementById('manual-tab');
+        const voiceTab = document.getElementById('voice-tab');
+        const manualView = document.getElementById('manual-view');
+        const voiceView = document.getElementById('voice-view');
+        const verseInput = document.getElementById('verse-input');
+        const searchBtn = document.getElementById('search-btn');
+        const micBtn = document.getElementById('mic-btn');
+        const voiceStatus = document.getElementById('voice-status');
+        const transcriptEl = document.getElementById('transcript');
+        const resultDisplay = document.getElementById('result-display');
+        const placeholderText = document.getElementById('placeholder-text');
+        const alertModal = document.getElementById('alert-modal');
+        const alertTitle = document.getElementById('alert-title');
+        const alertMessage = document.getElementById('alert-message');
+        const alertOkBtn = document.getElementById('alert-ok-btn');
+        const alertIcon = document.getElementById('alert-icon');
+        
+        // --- Event Listeners ---
+        manualTab.addEventListener('click', () => switchSearchView('manual'));
+        voiceTab.addEventListener('click', () => switchSearchView('voice'));
+        searchBtn.addEventListener('click', handleSearch);
+        verseInput.addEventListener('keyup', (e) => e.key === 'Enter' && handleSearch());
+        alertOkBtn.addEventListener('click', () => showAlert(false));
+
+        // --- Core Functions ---
+        function switchSearchView(view) {
+             if (view === 'manual') {
+                manualTab.classList.replace('tab-inactive', 'tab-active');
+                voiceTab.classList.replace('tab-active', 'tab-inactive');
+                manualView.classList.remove('hidden');
+                voiceView.classList.add('hidden');
+                if (isListening) toggleListening();
+            } else {
+                voiceTab.classList.replace('tab-inactive', 'tab-active');
+                manualTab.classList.replace('tab-active', 'tab-inactive');
+                voiceView.classList.remove('hidden');
+                manualView.classList.add('hidden');
+            }
+        }
+        
+        function handleSearch() {
+            const query = verseInput.value.trim();
+            if (!query) return;
+            processSearch(query);
+        }
+
+        function processSearch(query) {
+            const parsed = parseVerseReference(query);
+            if (!parsed) {
+                displayError('Formato no reconocido. Intenta con "Libro Capítulo:Versículo".');
+                return;
+            }
+            openVerseInJWLibrary(parsed.book, parsed.chapter, parsed.verse);
+        }
+        
+        function openVerseInJWLibrary(book, chapter, verse) {
+            showLoading("Preparando enlace a wol.jw.org...");
+            const query = encodeURIComponent(`${book} ${chapter}:${verse}`);
+            // This is the stable URL for searching on the Watchtower Online Library website.
+            const url = `https://wol.jw.org/es/wol/l/r4/lp-s?q=${query}`;
+            
+            // Open the URL in a new browser tab.
+            const newTab = window.open(url, '_blank');
+            
+            if (newTab) {
+                newTab.focus();
+                displayConfirmation(book, chapter, verse);
+            } else {
+                // This can happen if the browser has a popup blocker.
+                displayError("No se pudo abrir la nueva pestaña. Revisa si tu navegador tiene un bloqueador de ventanas emergentes.");
+            }
+        }
+
+        // --- UI & Display Functions ---
+        function showAlert(show, type) { // The showAlert function remains for potential future use, but is not currently called.
+            if (show) {
+                alertModal.classList.remove('hidden');
+                alertModal.classList.add('flex');
+            } else {
+                alertModal.classList.add('hidden');
+                alertModal.classList.remove('flex');
+            }
+        }
+
+        function showLoading(message) {
+            placeholderText.classList.add('hidden');
+            resultDisplay.innerHTML = `<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div><p class="ml-3 text-gray-400">${message}</p></div>`;
+        }
+
+        function displayError(message) {
+            placeholderText.classList.add('hidden');
+            resultDisplay.innerHTML = `<p class="text-red-400 text-center">${message}</p>`;
+        }
+
+        function displayConfirmation(book, chapter, verse) {
+            placeholderText.classList.add('hidden');
+            resultDisplay.innerHTML = `<div class="text-center"><h3 class="text-xl font-bold text-indigo-300">Enlace Abierto</h3><p class="mt-2 text-lg">Se ha abierto una nueva pestaña con <span class="font-semibold">${book} ${chapter}:${verse}</span> en wol.jw.org.</p></div>`;
+        }
+        
+        // --- Speech Recognition ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isListening = false;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.lang = 'es-ES';
+            recognition.interimResults = true;
+            recognition.onresult = (event) => {
+                let finalTranscript = '', interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+                    else interimTranscript += event.results[i][0].transcript;
+                }
+                transcriptEl.textContent = interimTranscript;
+                if (finalTranscript.trim()) processSearch(finalTranscript);
+            };
+            recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); voiceStatus.textContent = 'Escuchando...'; };
+            recognition.onend = () => { isListening = false; micBtn.classList.remove('listening'); voiceStatus.textContent = 'Toca el micrófono para empezar'; transcriptEl.textContent = ''; };
+            recognition.onerror = (event) => { console.error('Speech recognition error', event.error); voiceStatus.textContent = `Error: ${event.error}`; };
+        } else {
+            voiceTab.disabled = true;
+        }
+
+        micBtn.addEventListener('click', toggleListening);
+        function toggleListening() {
+            if (!SpeechRecognition) return;
+            isListening ? recognition.stop() : recognition.start();
+        }
+
+        // --- Book Mappings and Utility Functions ---
+        const bookMap = {
+            'genesis': 'Génesis', 'gen': 'Génesis', 'gn': 'Génesis', 'exodo': 'Éxodo', 'ex': 'Éxodo', 'levitico': 'Levítico', 'lev': 'Levítico', 'lv': 'Levítico', 'numeros': 'Números', 'num': 'Números', 'nm': 'Números', 'deuteronomio': 'Deuteronomio', 'deut': 'Deuteronomio', 'dt': 'Deuteronomio', 'josue': 'Josué', 'jos': 'Josué', 'jueces': 'Jueces', 'jue': 'Jueces', 'jc': 'Jueces', 'rut': 'Rut', 'rt': 'Rut', 'primera de samuel': '1 Samuel', '1 samuel': '1 Samuel', '1samuel': '1 Samuel', '1 sam': '1 Samuel', '1sm': '1 Samuel', 'segunda de samuel': '2 Samuel', '2 samuel': '2 Samuel', '2samuel': '2 Samuel', '2 sam': '2 Samuel', '2sm': '2 Samuel', 'primera de reyes': '1 Reyes', '1 reyes': '1 Reyes', '1reyes': '1 Reyes', '1 re': '1 Reyes', 'segunda de reyes': '2 Reyes', '2 reyes': '2 Reyes', '2reyes': '2 Reyes', '2 re': '2 Reyes', 'primera de cronicas': '1 Crónicas', '1 cronicas': '1 Crónicas', '1cronicas': '1 Crónicas', '1 cro': '1 Crónicas', '1cr': '1 Crónicas', 'segunda de cronicas': '2 Crónicas', '2 cronicas': '2 Crónicas', '2cronicas': '2 Crónicas', '2 cro': '2 Crónicas', '2cr': '2 Crónicas', 'esdras': 'Esdras', 'esd': 'Esdras', 'nehemias': 'Nehemías', 'neh': 'Nehemías', 'ester': 'Ester', 'est': 'Ester', 'job': 'Job', 'salmos': 'Salmos', 'salmo': 'Salmos', 'sal': 'Salmos', 'proverbios': 'Proverbios', 'prov': 'Proverbios', 'pr': 'Proverbios', 'eclesiastes': 'Eclesiastés', 'ecl': 'Eclesiastés', 'ec': 'Eclesiastés', 'cantares': 'El Cantar de los Cantares', 'cantar de los cantares': 'El Cantar de los Cantares', 'cantar': 'El Cantar de los Cantares', 'cnt': 'El Cantar de los Cantares', 'isaias': 'Isaías', 'isa': 'Isaías', 'is': 'Isaías', 'jeremias': 'Jeremías', 'jer': 'Jeremías', 'lamentaciones': 'Lamentaciones', 'lam': 'Lamentaciones', 'ezequiel': 'Ezequiel', 'eze': 'Ezequiel', 'ez': 'Ezequiel', 'daniel': 'Daniel', 'dan': 'Daniel', 'dn': 'Daniel', 'oseas': 'Oseas', 'os': 'Oseas', 'joel': 'Joel', 'jl': 'Joel', 'amos': 'Amós', 'am': 'Amós', 'abdias': 'Abdías', 'abd': 'Abdías', 'jonas': 'Jonás', 'jon': 'Jonás', 'miqueas': 'Miqueas', 'miq': 'Miqueas', 'mi': 'Miqueas', 'nahum': 'Nahúm', 'nah': 'Nahúm', 'habacuc': 'Habacuc', 'hab': 'Habacuc', 'sofonias': 'Sofonías', 'sof': 'Sofonías', 'hageo': 'Ageo', 'hag': 'Ageo', 'zacarias': 'Zacarías', 'zac': 'Zacarías', 'malaquias': 'Malaquías', 'mal': 'Malaquías', 'mateo': 'Mateo', 'mat': 'Mateo', 'mt': 'Mateo', 'marcos': 'Marcos', 'mar': 'Marcos', 'mc': 'Marcos', 'lucas': 'Lucas', 'luc': 'Lucas', 'lc': 'Lucas', 'juan': 'Juan', 'jn': 'Juan', 'hechos': 'Hechos de los Apóstoles', 'hch': 'Hechos de los Apóstoles', 'romanos': 'Romanos', 'rom': 'Romanos', 'ro': 'Romanos', 'primera de corintios': '1 Corintios', '1 corintios': '1 Corintios', '1corintios': '1 Corintios', '1 cor': '1 Corintios', '1co': '1 Corintios', 'segunda de corintios': '2 Corintios', '2 corintios': '2 Corintios', '2corintios': '2 Corintios', '2 cor': '2 Corintios', '2co': '2 Corintios', 'galatas': 'Gálatas', 'gal': 'Gálatas', 'ga': 'Gálatas', 'efesios': 'Efesios', 'efe': 'Efesios', 'ef': 'Efesios', 'filipenses': 'Filipenses', 'fil': 'Filipenses', 'flp': 'Filipenses', 'colosenses': 'Colosenses', 'col': 'Colosenses', 'primera de tesalonicenses': '1 Tesalonicenses', '1 tesalonicenses': '1 Tesalonicenses', '1tesalonicenses': '1 Tesalonicenses', '1 tes': '1 Tesalonicenses', '1ts': '1 Tesalonicenses', 'segunda de tesalonicenses': '2 Tesalonicenses', '2 tesalonicenses': '2 Tesalonicenses', '2tesalonicenses': '2 Tesalonicenses', '2 tes': '2 Tesalonicenses', '2ts': '2 Tesalonicenses', 'primera de timoteo': '1 Timoteo', '1 timoteo': '1 Timoteo', '1timoteo': '1 Timoteo', '1 tim': '1 Timoteo', '1ti': '1 Timoteo', 'segunda de timoteo': '2 Timoteo', '2 timoteo': '2 Timoteo', '2timoteo': '2 Timoteo', '2 tim': '2 Timoteo', '2ti': '2 Timoteo', 'tito': 'Tito', 'tit': 'Tito', 'filemon': 'Filemón', 'flm': 'Filemón', 'hebreos': 'Hebreos', 'heb': 'Hebreos', 'santiago': 'Santiago', 'stg': 'Santiago', 'primera de pedro': '1 Pedro', '1 pedro': '1 Pedro', '1pedro': '1 Pedro', '1 pe': '1 Pedro', '1p': '1 Pedro', 'segunda de pedro': '2 Pedro', '2 pedro': '2 Pedro', '2pedro': '2 Pedro', '2 pe': '2 Pedro', '2p': '2 Pedro', 'primera de juan': '1 Juan', '1 juan': '1 Juan', '1juan': '1 Juan', '1 jn': '1 Juan', 'segunda de juan': '2 Juan', '2 juan': '2 Juan', '2juan': '2 Juan', '2 jn': '2 Juan', 'tercera de juan': '3 Juan', '3 juan': '3 Juan', '3juan': '3 Juan', '3 jn': '3 Juan', 'judas': 'Judas', 'jud': 'Judas', 'apocalipsis': 'Apocalipsis', 'revelacion': 'Apocalipsis', 'apoc': 'Apocalipsis', 'ap': 'Apocalipsis'
+        };
+
+        const numberMap = { 'cero': '0', 'uno': '1', 'dos': '2', 'tres': '3', 'cuatro': '4', 'cinco': '5', 'seis': '6', 'siete': '7', 'ocho': '8', 'nueve': '9', 'diez': '10', 'once': '11', 'doce': '12', 'trece': '13', 'catorce': '14', 'quince': '15', 'dieciséis': '16', 'diecisiete': '17', 'dieciocho': '18', 'diecinueve': '19', 'veinte': '20', 'veintiuno': '21', 'veintidos': '22', 'veintitres': '23', 'veinticuatro': '24', 'veinticinco': '25' };
+
+        function parseVerseReference(text) {
+            let cleanedText = text.toLowerCase().trim()
+                .replace(/capítulo/g, '')
+                .replace(/versículo/g, '')
+                .replace(/verso/g, '');
+
+            Object.keys(numberMap).forEach(key => {
+                const regex = new RegExp(`\\b${key}\\b`, 'g');
+                cleanedText = cleanedText.replace(regex, numberMap[key]);
+            });
+
+            const bookNamesForRegex = Object.keys(bookMap).join('|');
+            const regex = new RegExp(`(${bookNamesForRegex})\\s+(\\d+)\\s*(?:[:.]?\\s*|\\s+)(\\d+)`, 'i');
+            const match = cleanedText.match(regex);
+
+            if (match) {
+                const bookKey = match[1];
+                const chapter = match[2];
+                const verse = match[3];
+                const book = bookMap[bookKey];
+
+                if (book && chapter && verse) {
+                    return { book, chapter, verse };
+                }
+            }
+            return null;
+        }
+        
+        // --- Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado con éxito:', registration);
+                    })
+                    .catch(err => {
+                        console.log('Error en el registro del Service Worker:', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
 
